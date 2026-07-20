@@ -686,6 +686,69 @@ function check(name, cond) {
   }
   check('豆知識: 12回切替で10種類以上出る(量の底上げ確認)', seenTrivia.size >= 10, `size=${seenTrivia.size}`);
 
+  // ── 18. 節酒モデル: 上限判定・週の休肝日・dailyLimit変更時の再判定 ──
+  const pageMod = await browser.newPage({ viewport: { width: 390, height: 844 }, locale: 'ja-JP' });
+  pageMod.on('pageerror', e => errors.push('MOD: ' + e.message));
+  await pageMod.goto(URL);
+  await pageMod.waitForTimeout(400);
+  const modStart = new Date(Date.now() - 20 * 86400000).toISOString().slice(0, 10);
+  await pageMod.fill('#obStartDate', modStart);
+  await pageMod.click('#obNext1');
+  await pageMod.fill('#obDrinks', '3');
+  await pageMod.fill('#obPrice', '500');
+  await pageMod.click('#obNext2');
+  await pageMod.fill('#obLimit', '2');
+  await pageMod.fill('#obGoal', '30');
+  await pageMod.click('#obFinish');
+  await pageMod.waitForTimeout(700);
+  check('節酒: オンボーディングのdailyLimit入力が反映される',
+    (await pageMod.evaluate(() => JSON.parse(localStorage.getItem('sesshu_v1')).dailyLimit)) === 2);
+
+  await pageMod.click('#recordTodayBtn');
+  await pageMod.waitForTimeout(200);
+  await pageMod.fill('#logDrinks', '1');
+  await pageMod.click('.mood[data-mood="4"]');
+  await pageMod.click('#saveLogBtn');
+  await pageMod.waitForTimeout(400);
+  check('節酒: 上限内(1杯/2杯まで)の記録では継続日数が途切れない',
+    Number(await pageMod.textContent('#chipStreak b')) > 0);
+
+  await pageMod.click('.nav-item[data-tab="stats"]');
+  await pageMod.waitForTimeout(300);
+  await pageMod.click('#calendar button.cal-cell.today');
+  await pageMod.waitForTimeout(200);
+  const modDdText = await pageMod.textContent('#dayDetail');
+  check('節酒: 日別詳細に記録した杯数が表示される', modDdText.includes('1杯'));
+  check('節酒: 上限内の日は「目標を守れた日」の表記', modDdText.includes('目標を守れた日'));
+
+  await pageMod.click('.nav-item[data-tab="home"]');
+  await pageMod.waitForTimeout(200);
+  await pageMod.click('#relapseBtn');
+  await pageMod.waitForTimeout(250);
+  check('節酒: スリップシートの杯数初期値がdailyLimit+1(=3)',
+    (await pageMod.inputValue('#relapseDrinks')) === '3');
+  await pageMod.click('#relapseDaySeg .seg-btn[data-day="1"]'); // 昨日
+  await pageMod.fill('#relapseDrinks', '5');
+  await pageMod.click('#saveRelapseBtn');
+  await pageMod.waitForTimeout(600);
+  check('節酒: 上限超え(5杯)を記録すると継続日数がリセットされる',
+    (await pageMod.textContent('#chipStreak b')) === '0');
+
+  await pageMod.click('#settingsBtn');
+  await pageMod.waitForTimeout(300);
+  await pageMod.fill('#dailyLimit', '6');
+  await pageMod.click('#saveSettings');
+  await pageMod.waitForTimeout(400);
+  check('節酒: dailyLimitを緩めると過去の上限超え日が再分類され継続日数が回復する',
+    Number(await pageMod.textContent('#chipStreak b')) >= 2);
+
+  check('節酒: 週の休肝日チップが表示されている(weeklyAlcoholFreeGoal>0)',
+    !(await pageMod.$eval('#chipWeekly', el => el.hidden)));
+  check('節酒: 週の休肝日チップに数値が入っている',
+    /\d+/.test(await pageMod.textContent('#chipWeekly')));
+
+  await pageMod.close();
+
   check('コンソールエラーなし', errors.length === 0);
   if (errors.length) console.log('errors:', errors);
   console.log(failures.length ? `\n✗ ${failures.length} 件失敗` : '\n✓ 全テスト合格');
