@@ -54,7 +54,7 @@ try { var _s = JSON.parse(localStorage.getItem('sesshu_v1')); if (_s && _s.theme
               <circle class="ring-fg" id="ringFg" cx="100" cy="100" r="86" />
             </svg>
             <div class="ring-center">
-              <span class="ring-label" data-i18n="ring.label">禁酒継続</span>
+              <span class="ring-label" data-i18n="ring.label">節酒継続</span>
               <span class="ring-days"><b id="daysCount">0</b><i data-i18n="ring.dayUnit">日</i></span>
               <span class="ring-sub" id="ringSub"></span>
             </div>
@@ -104,7 +104,7 @@ try { var _s = JSON.parse(localStorage.getItem('sesshu_v1')); if (_s && _s.theme
 
       <button id="recordTodayBtn" class="btn btn-primary btn-lg" data-i18n="btn.recordToday">✅ 今日を記録する</button>
       <button id="exceptionBtn" class="btn-quiet" data-i18n="btn.exception">🎉 特別な日として記録する…</button>
-      <button id="relapseBtn" class="btn-quiet" data-i18n="btn.relapse">飲んでしまった日を記録する…</button>
+      <button id="relapseBtn" class="btn-quiet" data-i18n="btn.relapse">上限を超えて飲んでしまった日を記録する…</button>
 
       <div class="card goal-card" id="goalCard">
         <div class="goal-head">
@@ -143,7 +143,7 @@ try { var _s = JSON.parse(localStorage.getItem('sesshu_v1')); if (_s && _s.theme
         <div class="card stat">
           <span class="stat-emoji" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 13.5 10.5 20 12 13.5 13.5 12 20 10.5 13.5 4 12 10.5 10.5Z"/></svg></span>
           <span class="stat-num" id="soberRate">100%</span>
-          <span class="stat-cap" data-i18n="stat.rate">開始からの禁酒率</span>
+          <span class="stat-cap" data-i18n="stat.rate">開始からの目標達成率</span>
         </div>
       </div>
 
@@ -215,7 +215,7 @@ try { var _s = JSON.parse(localStorage.getItem('sesshu_v1')); if (_s && _s.theme
         </div>
         <div id="calendar" class="calendar"></div>
         <div class="cal-legend">
-          <span><i class="dot sober"></i><span data-i18n="legend.sober">禁酒</span></span>
+          <span><i class="dot sober"></i><span data-i18n="legend.sober">達成</span></span>
           <span><i class="dot relapse"></i><span data-i18n="legend.relapse">飲酒</span></span>
           <span><i class="dot exception"></i><span data-i18n="legend.exception">特別な日</span></span>
           <span><i class="dot today"></i><span data-i18n="legend.today">今日</span></span>
@@ -312,11 +312,11 @@ try { var _s = JSON.parse(localStorage.getItem('sesshu_v1')); if (_s && _s.theme
   </div>
 </div>
 
-<!-- ═══════════ スリップシート ═══════════ -->
-<div id="relapseSheet" class="sheet hidden" role="dialog" aria-modal="true" aria-label="飲んでしまった日の記録">
+<!-- ═══════════ 上限オーバーの記録シート ═══════════ -->
+<div id="relapseSheet" class="sheet hidden" role="dialog" aria-modal="true" aria-label="上限を超えた日の記録">
   <div class="sheet-panel">
     <div class="sheet-grip" aria-hidden="true"><i></i></div>
-    <h2 data-i18n="relapse.title">飲んでしまった日を記録</h2>
+    <h2 data-i18n="relapse.title">上限を超えた日を記録</h2>
     <p class="relapse-copy" data-i18n-html="relapse.copy">大丈夫、失敗ではなく学びです。<b>通算の記録と節約額は消えません。</b>連続日数だけがリセットされ、また今日から積み上がります。</p>
     <p class="field-label" data-i18n="relapse.when">いつ飲みましたか？</p>
     <div class="seg" id="relapseDaySeg">
@@ -410,7 +410,7 @@ try { var _s = JSON.parse(localStorage.getItem('sesshu_v1')); if (_s && _s.theme
     </div>
 
     <p class="sec-title" data-i18n="set.basic">基本</p>
-    <label class="field"><span data-i18n="set.startDate">禁酒を始めた日</span><input type="date" id="startDate" /></label>
+    <label class="field"><span data-i18n="set.startDate">節酒を始めた日</span><input type="date" id="startDate" /></label>
     <label class="field"><span data-i18n="set.goalDays">目標日数（日）</span><input type="number" id="goalDays" min="1" step="1" value="30" /></label>
 
     <p class="sec-title" data-i18n="set.moderationGoal">節酒の目標</p>
@@ -440,7 +440,7 @@ try { var _s = JSON.parse(localStorage.getItem('sesshu_v1')); if (_s && _s.theme
     <p class="sec-title" data-i18n="set.you">あなた</p>
     <label class="field"><span data-i18n="set.nickname">ニックネーム（任意・ホームの挨拶に使用）</span><input type="text" id="nickname" data-i18n-ph="set.nicknamePh" placeholder="例: たろう" maxlength="12" autocomplete="off" /></label>
     <label class="field"><span data-i18n="set.birth">生年月日（占い・アドバイスに使用）</span><input type="date" id="birthDate" /></label>
-    <label class="field"><span data-i18n="set.reasons">禁酒する理由（1行に1つ・SOS時に表示されます）</span><textarea id="reasonsInput" data-i18n-ph="set.reasonsPh" placeholder="例: 家族との時間を大切にしたい&#10;例: 朝スッキリ起きたい"></textarea></label>
+    <label class="field"><span data-i18n="set.reasons">節酒する理由（1行に1つ・SOS時に表示されます）</span><textarea id="reasonsInput" data-i18n-ph="set.reasonsPh" placeholder="例: 家族との時間を大切にしたい&#10;例: 朝スッキリ起きたい"></textarea></label>
 
     <p class="sec-title" data-i18n="set.notif">通知</p>
     <label class="field toggle-field"><span data-i18n="set.reminderOn">毎日のリマインダー通知</span><input type="checkbox" id="reminderOn" /></label>
@@ -508,10 +508,10 @@ try { var _s = JSON.parse(localStorage.getItem('sesshu_v1')); if (_s && _s.theme
     <div class="ob-step" data-step="1">
       <div class="ob-emoji">🌱</div>
       <h2 data-i18n="ob.welcome">ようこそ！</h2>
-      <p class="ob-lead" data-i18n="ob.lead1">禁酒の旅を、一緒に記録していきましょう。
+      <p class="ob-lead" data-i18n="ob.lead1">節酒の旅を、一緒に記録していきましょう。
 まず2つだけ教えてください。</p>
-      <label class="field"><span data-i18n="ob.startDate">禁酒を始めた日（今日からでOK）</span><input type="date" id="obStartDate" /></label>
-      <p class="field-label" data-i18n="ob.why">禁酒する理由は？（あとで変更できます）</p>
+      <label class="field"><span data-i18n="ob.startDate">節酒を始めた日（今日からでOK）</span><input type="date" id="obStartDate" /></label>
+      <p class="field-label" data-i18n="ob.why">節酒する理由は？（あとで変更できます）</p>
       <div class="trigger-row" id="reasonChips">
         <button class="trigger" data-reason="健康のため" data-i18n="reason.健康のため">💪 健康のため</button>
         <button class="trigger" data-reason="家族・大切な人のため" data-i18n="reason.家族・大切な人のため">👨‍👩‍👧 家族のため</button>
@@ -562,7 +562,7 @@ try { var _s = JSON.parse(localStorage.getItem('sesshu_v1')); if (_s && _s.theme
   </div>
 </div>
 
-<!-- ═══════════ スリップ記録の確認 ═══════════ -->
+<!-- ═══════════ 上限オーバー記録の確認 ═══════════ -->
 <div id="relapseConfirm" class="rc-overlay hidden" role="alert" aria-hidden="true">
   <div class="rc-card">
     <div class="rc-icon">🌱</div>
