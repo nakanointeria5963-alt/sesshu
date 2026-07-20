@@ -1,0 +1,30 @@
+{
+  "name": "節酒サポート",
+  "short_name": "節酒",
+  "description": "節酒(お酒を減らす)の目標達成度・節約・気分を記録するアプリ。データは端末内にのみ保存されます。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f2f6f6",
+  "theme_color": "#0e7490",
+  "lang": "ja",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "今日を記録する",
+      "short_name": "記録",
+      "url": "./?action=record",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "SOS：飲みすぎそうな気持ちを落ち着ける",
+      "short_name": "SOS",
+      "url": "./?action=sos",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}
