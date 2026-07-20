@@ -20,21 +20,23 @@ const defaultState = {
   currency: '',             // '' = 言語から自動（ja→JPY / それ以外→USD）
   startDate: todayStr(),
   birthDate: '',
-  drinksPerDay: 3,
+  drinksPerDay: 3,           // 節酒を始める前、1日あたり平均何杯飲んでいたか（節約額・カロリーの基準値）
   pricePerDrink: 500,
   calPerDrink: 150,
+  dailyLimit: 2,             // 節酒目標：1日あたりこの杯数までなら「達成」扱いにする
+  weeklyAlcoholFreeGoal: 2,  // 節酒目標：週にこの日数は休肝日（0杯の日）にしたい
   goalDays: 30,
   goalCelebrated: 0,        // 祝福済みの目標値（重複紙吹雪の防止）
   reminderOn: false,
   reminderTime: '21:00',
   lastReminded: '',
-  relapses: [],             // 飲んでしまった日 (YYYY-MM-DD)
+  relapses: [],             // 上限を超えて飲んでしまった日 (YYYY-MM-DD)
   relapseNotes: {},         // { date: きっかけメモ }
-  exceptions: [],           // 事前に決めた「特別な日」(継続日数は途切れない) (YYYY-MM-DD)
+  exceptions: [],           // 事前に決めた「特別な日」(上限を超えても継続日数は途切れない) (YYYY-MM-DD)
   exceptionReasons: {},     // { date: 理由メモ }
-  logs: {},                 // { date: { mood, craving, note, triggers[] } }
+  logs: {},                 // { date: { mood, craving, note, triggers[], drinks } } drinks=その日実際に飲んだ杯数
   badgeDates: {},           // { 日数: 達成日 }
-  reasons: [],              // 禁酒する理由
+  reasons: [],              // 節酒する理由
   rewardName: '',           // ごほうび貯金の目当て
   rewardPrice: 0,
   rewardCelebrated: '',     // 祝福済みのごほうび（name+price）
@@ -121,7 +123,12 @@ window.addEventListener('storage', e => {
   if (e.key === STORE_KEY) { state = load(); applyTheme(); applyLang(); updateDerived(); render(); }
 });
 
-/* ═══════════════ 派生値の計算 ═══════════════ */
+/* ═══════════════ 派生値の計算 ═══════════════
+   節酒アプリでは「1杯でも飲んだら失敗」ではなく「1日の上限(dailyLimit)を
+   超えたら失敗」という考え方にする。relapses[] は「その日の実飲酒量が
+   dailyLimitを超えた日」の集合として扱う（下のapplyDrinkCount()が唯一の
+   書き込み口）。streakStart/currentDays自体のロジックはkinnsyu由来のまま
+   （relapses[]に何が積まれるかの意味だけが変わっている）。 */
 function streakStart() {
   let start = state.startDate;
   if (state.relapses.length) {
@@ -142,6 +149,71 @@ function drinkingDayCount() {
 function totalSoberDays() { return Math.max(0, elapsedDays() - drinkingDayCount()); }
 function isRelapseDay(ds) { return state.relapses.includes(ds); }
 function isExceptionDay(ds) { return state.exceptions.includes(ds); }
+
+/* dailyLimitを変更した直後に呼ぶ。記録済みの杯数はそのままに、
+   新しい上限で「上限超え」かどうかを全日分judgeし直す */
+function reclassifyDrinkDays() {
+  for (const ds of Object.keys(state.logs)) {
+    const log = state.logs[ds];
+    if (log && log.drinks != null) applyDrinkCount(ds, log.drinks);
+  }
+}
+
+/* その日実際に飲んだ杯数（未記録の日は0扱い＝低摩擦の方針を踏襲） */
+function actualDrinks(ds) {
+  const l = state.logs[ds];
+  return (l && Number(l.drinks) > 0) ? Number(l.drinks) : 0;
+}
+/* 記録シート・スリップシートの両方から呼ばれる、飲酒量の唯一の書き込み口。
+   杯数がdailyLimitを超えていればrelapses[]に入れ（上限超え扱い）、
+   超えていなければ外す。「特別な日」は上限判定の対象外（既存方針を踏襲）。 */
+function applyDrinkCount(ds, drinks, note) {
+  state.logs[ds] = { ...(state.logs[ds] || {}), drinks: Math.max(0, Number(drinks) || 0) };
+  if (isExceptionDay(ds)) return;
+  const over = state.logs[ds].drinks > state.dailyLimit;
+  const wasOver = isRelapseDay(ds);
+  if (over) {
+    if (!wasOver) state.relapses.push(ds);
+    if (note) state.relapseNotes[ds] = note;
+  } else if (wasOver) {
+    state.relapses = state.relapses.filter(d => d !== ds);
+    delete state.relapseNotes[ds];
+  }
+}
+
+/* 今週(state.weekStartを基準)の開始日を返す */
+function weekStartOf(ds) {
+  const dow = parseDate(ds).getDay();
+  const offset = state.weekStart === 'mon' ? (dow + 6) % 7 : dow;
+  return addDays(ds, -offset);
+}
+/* 今週これまでのうち、休肝日(0杯・上限超えでも特別な日でもない日)の数 */
+function weeklyAlcoholFreeCount() {
+  const today = todayStr();
+  const start = weekStartOf(today);
+  let n = 0;
+  for (let d = start; d <= today; d = addDays(d, 1)) {
+    if (d < state.startDate) continue;
+    if (isRelapseDay(d) || isExceptionDay(d)) continue;
+    if (actualDrinks(d) === 0) n++;
+  }
+  return n;
+}
+/* 節約できた杯数の通算。totalSoberDays()（=経過日数から上限超え/特別な日を
+   引いた「節約できた日数」の集計値）を基準値ぶんずつ積んだ上で、その中で
+   実際に記録された飲酒量（記録がなければ0杯＝満額節約という既存方針）を
+   差し引く。totalSoberDays()自体は特定の日付に紐づかない集計値なので、
+   ここでは「上限超え/特別な日ではない日」に記録された杯数の合計だけを引く。 */
+function drinksAvoidedTotal() {
+  const today = todayStr();
+  let loggedOnCountedDays = 0;
+  for (const ds of Object.keys(state.logs)) {
+    if (ds < state.startDate || ds > today) continue;
+    if (isRelapseDay(ds) || isExceptionDay(ds)) continue;
+    loggedOnCountedDays += actualDrinks(ds);
+  }
+  return Math.max(0, totalSoberDays() * state.drinksPerDay - loggedOnCountedDays);
+}
 
 /* 肝臓イラストは継続日数（ストリーク）とは別に、失敗日・特別な日を問わず
    「実際に飲んだ最後の日」からの経過日数で回復させる。特別な日を一度も
@@ -247,6 +319,11 @@ function renderHero() {
     ? t('chip.totalFrac', { sober: totalSoberDays(), elapsed })
     : t('chip.total', { n: totalSoberDays() });
   $('#chipBest').innerHTML = t('chip.best', { n: bestStreakDays() });
+  const weekGoal = Math.max(0, state.weeklyAlcoholFreeGoal || 0);
+  $('#chipWeekly').innerHTML = weekGoal > 0
+    ? t('chip.weekly', { n: Math.min(weeklyAlcoholFreeCount(), weekGoal), g: weekGoal })
+    : '';
+  $('#chipWeekly').hidden = weekGoal <= 0;
   $('#counterSub').textContent = t('hero.since', { d1: fmtDate(streakStart()), d2: fmtDate(state.startDate) });
 
   const next = BADGES.find(b => b.days > days);
@@ -343,7 +420,7 @@ function renderGoal() {
 }
 
 /* --- ごほうび貯金 --- */
-function savedMoney() { return Math.round(totalSoberDays() * state.drinksPerDay * state.pricePerDrink); }
+function savedMoney() { return Math.round(drinksAvoidedTotal() * state.pricePerDrink); }
 
 function renderReward() {
   const card = $('#rewardCard');
@@ -374,12 +451,12 @@ function renderReward() {
 /* --- 統計（通算ベース） --- */
 function renderStats() {
   const total = totalSoberDays();
-  const money = savedMoney();
-  const cals = Math.round(total * state.drinksPerDay * state.calPerDrink);
-  const drinks = Math.round(total * state.drinksPerDay);
+  const avoided = drinksAvoidedTotal();
+  const money = Math.round(avoided * state.pricePerDrink);
+  const cals = Math.round(avoided * state.calPerDrink);
   $('#moneySaved').textContent = fmtMoney(money);
   $('#calSaved').textContent = cals.toLocaleString(I18N.locale());
-  $('#drinksAvoided').textContent = drinks.toLocaleString(I18N.locale());
+  $('#drinksAvoided').textContent = Math.round(avoided).toLocaleString(I18N.locale());
   const el = elapsedDays();
   $('#soberRate').textContent = (el === 0 ? 100 : Math.round((total / el) * 100)) + '%';
 }
@@ -585,8 +662,9 @@ function renderDayDetail() {
 
   let status = before ? t('dd.before') : relapse ? t('dd.drank') : exception ? t('dd.exception') : t('dd.sober');
   let body = '';
+  if (log && log.drinks != null) body += `<div>${escapeHtml(t('dd.drinks', { n: log.drinks }))}</div>`;
   if (log) {
-    body += `<div>${escapeHtml(t('dd.mood', { emoji: MOOD_EMOJI[log.mood] || '', n: log.craving }))}</div>`;
+    if (log.mood) body += `<div>${escapeHtml(t('dd.mood', { emoji: MOOD_EMOJI[log.mood] || '', n: log.craving }))}</div>`;
     if (log.triggers && log.triggers.length) body += `<div>${escapeHtml(t('dd.triggers', { list: log.triggers.map(triggerLabel).join('・') }))}</div>`;
     if (log.note) body += `<div>${escapeHtml(log.note)}</div>`;
   }
@@ -608,6 +686,9 @@ function renderDayDetail() {
   if (un) un.addEventListener('click', () => {
     state.relapses = state.relapses.filter(d => d !== ds);
     delete state.relapseNotes[ds];
+    /* 上限超え扱いを解除するので、記録済みの杯数も上限内に揃えておく
+       （揃えないと、次にこの日を編集した瞬間また上限超えに戻ってしまう） */
+    if (state.logs[ds]) state.logs[ds] = { ...state.logs[ds], drinks: Math.min(state.logs[ds].drinks || 0, state.dailyLimit) };
     save(); updateDerived(); render();
     toast(t('dd.unrelapsed'));
   });
@@ -615,6 +696,9 @@ function renderDayDetail() {
   if (unex) unex.addEventListener('click', () => {
     state.exceptions = state.exceptions.filter(d => d !== ds);
     delete state.exceptionReasons[ds];
+    /* 特別な日扱いを解除したら、普通の日に戻す（記録済みの杯数が
+       残っていると、節約額の計算にそのまま混ざってしまうため） */
+    if (state.logs[ds]) state.logs[ds] = { ...state.logs[ds], drinks: 0 };
     save(); updateDerived(); render();
     toast(t('dd.unexceptioned'));
   });
@@ -732,6 +816,7 @@ function openRecordSheet(ds) {
   const trigs = new Set(log.triggers || []);
   $$('#triggerRow .trigger').forEach(b => b.classList.toggle('selected', trigs.has(b.dataset.trigger)));
   $('#note').value = log.note || '';
+  $('#logDrinks').value = log.drinks || 0;
   openSheet('#recordSheet');
 }
 
@@ -744,6 +829,7 @@ function saveLog() {
     note: $('#note').value.trim(),
     triggers: $$('#triggerRow .trigger.selected').map(b => b.dataset.trigger),
   };
+  applyDrinkCount(sheetDate, $('#logDrinks').value);
   save();
   closeSheet('#recordSheet');
   const newly = updateDerived();
@@ -767,22 +853,26 @@ function openRelapseSheet() {
   $('#relapseDate').value = '';
   $('#relapseDate').max = todayStr();
   $('#relapseNote').value = '';
+  const minOver = state.dailyLimit + 1;
+  $('#relapseDrinks').min = minOver;
+  $('#relapseDrinks').value = minOver;
   openSheet('#relapseSheet');
 }
 
-function addRelapse(ds, note) {
-  const undoState = { relapses: [...state.relapses], notes: { ...state.relapseNotes } };
+function addRelapse(ds, note, drinks) {
+  const undoState = { relapses: [...state.relapses], notes: { ...state.relapseNotes }, logs: { ...state.logs } };
   /* 同じ日に「特別な日」が付いていたら、矛盾しないよう外しておく */
   state.exceptions = state.exceptions.filter(d => d !== ds);
   delete state.exceptionReasons[ds];
-  if (!state.relapses.includes(ds)) state.relapses.push(ds);
-  if (note) state.relapseNotes[ds] = note;
+  const drinkCount = Math.max(state.dailyLimit + 1, Math.round(Number(drinks) || 0));
+  applyDrinkCount(ds, drinkCount, note);
   save(); updateDerived(); render();
   switchTab('home');
   buzz(15);
   showUndoConfirm(t('relapse.toast'), t('relapse.undo'), () => {
     state.relapses = undoState.relapses;
     state.relapseNotes = undoState.notes;
+    state.logs = undoState.logs;
     save(); updateDerived(); render();
     toast(t('relapse.undone'));
   });
@@ -911,6 +1001,8 @@ function closeSos(fromPop) {
 function openSettings() {
   $('#startDate').value = state.startDate;
   $('#goalDays').value = state.goalDays;
+  $('#dailyLimit').value = state.dailyLimit;
+  $('#weeklyAlcoholFreeGoal').value = state.weeklyAlcoholFreeGoal;
   $('#drinksPerDay').value = state.drinksPerDay;
   $('#pricePerDrink').value = state.pricePerDrink;
   $('#calPerDrink').value = state.calPerDrink;
@@ -947,6 +1039,9 @@ async function saveSettings() {
   state.startDate = sd || state.startDate;
   state.currency = $('#currency').value;
   state.goalDays = Math.max(1, Math.round(Number($('#goalDays').value) || 30));
+  state.dailyLimit = Math.max(0, Math.round(Number($('#dailyLimit').value) || 0));
+  reclassifyDrinkDays();
+  state.weeklyAlcoholFreeGoal = Math.max(0, Math.round(Number($('#weeklyAlcoholFreeGoal').value) || 0));
   state.drinksPerDay = Math.max(0, Number($('#drinksPerDay').value) || 0);
   state.pricePerDrink = Math.max(0, Number($('#pricePerDrink').value) || 0);
   state.calPerDrink = Math.max(0, Number($('#calPerDrink').value) || 0);
@@ -1145,6 +1240,7 @@ function showOnboarding() {
     state.reasons = $$('#reasonChips .trigger.selected').map(b => b.dataset.reason);
     state.drinksPerDay = Math.max(0, Number($('#obDrinks').value) || 3);
     state.pricePerDrink = Math.max(0, Number($('#obPrice').value) || (I18N.lang() === 'ja' ? 500 : 8));
+    state.dailyLimit = Math.max(0, Math.round(Number($('#obLimit').value) || 2));
     state.goalDays = Math.max(1, Math.round(Number($('#obGoal').value) || 30));
     state.birthDate = $('#obBirth').value || '';
     state.onboarded = true;
@@ -1424,7 +1520,7 @@ function init() {
       ds = addDays(todayStr(), -Number(relapseDayChoice));
     }
     closeSheet('#relapseSheet');
-    addRelapse(ds, $('#relapseNote').value.trim());
+    addRelapse(ds, $('#relapseNote').value.trim(), $('#relapseDrinks').value);
   });
   $('#closeRelapse').addEventListener('click', () => closeSheet('#relapseSheet'));
 
