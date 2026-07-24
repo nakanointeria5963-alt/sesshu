@@ -199,6 +199,15 @@ function weeklyAlcoholFreeCount() {
   }
   return n;
 }
+/* 今週(state.weekStart基準)の日付範囲を「7/20-7/26」のような短い表記で返す。
+   休肝日チップに添えることで、カウント対象の週の境界を目に見える形にする。 */
+function weekRangeLabel() {
+  const start = weekStartOf(todayStr());
+  const end = addDays(start, 6);
+  const loc = window.I18N ? I18N.locale() : 'ja-JP';
+  const short = ds => { try { return parseDate(ds).toLocaleDateString(loc, { month: 'numeric', day: 'numeric' }); } catch (e) { return ds; } };
+  return `${short(start)}-${short(end)}`;
+}
 /* 節約できた杯数の通算。totalSoberDays()（=経過日数から上限超え/特別な日を
    引いた「節約できた日数」の集計値）を基準値ぶんずつ積んだ上で、その中で
    実際に記録された飲酒量（記録がなければ0杯＝満額節約という既存方針）を
@@ -321,7 +330,7 @@ function renderHero() {
   $('#chipBest').innerHTML = t('chip.best', { n: bestStreakDays() });
   const weekGoal = Math.max(0, state.weeklyAlcoholFreeGoal || 0);
   $('#chipWeekly').innerHTML = weekGoal > 0
-    ? t('chip.weekly', { n: Math.min(weeklyAlcoholFreeCount(), weekGoal), g: weekGoal })
+    ? t('chip.weekly', { n: Math.min(weeklyAlcoholFreeCount(), weekGoal), g: weekGoal, range: weekRangeLabel() })
     : '';
   $('#chipWeekly').hidden = weekGoal <= 0;
   $('#counterSub').textContent = t('hero.since', { d1: fmtDate(streakStart()), d2: fmtDate(state.startDate) });
@@ -1041,7 +1050,7 @@ async function saveSettings() {
   state.goalDays = Math.max(1, Math.round(Number($('#goalDays').value) || 30));
   state.dailyLimit = Math.max(0, Math.round(Number($('#dailyLimit').value) || 0));
   reclassifyDrinkDays();
-  state.weeklyAlcoholFreeGoal = Math.max(0, Math.round(Number($('#weeklyAlcoholFreeGoal').value) || 0));
+  state.weeklyAlcoholFreeGoal = Math.min(7, Math.max(0, Math.round(Number($('#weeklyAlcoholFreeGoal').value) || 0)));
   state.drinksPerDay = Math.max(0, Number($('#drinksPerDay').value) || 0);
   state.pricePerDrink = Math.max(0, Number($('#pricePerDrink').value) || 0);
   state.calPerDrink = Math.max(0, Number($('#calPerDrink').value) || 0);
