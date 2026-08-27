@@ -1,7 +1,7 @@
 /* 節酒サポート Service Worker
    - ページ(HTML)はネットワーク優先: 更新が確実にユーザーに届く
    - アセットはキャッシュ優先＋裏で更新(stale-while-revalidate) */
-const CACHE = 'sesshu-a56d5ab6f8';
+const CACHE = 'sesshu-0ff7032448';
 const ASSETS = [
   './',
   './index.html',

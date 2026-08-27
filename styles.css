@@ -426,6 +426,16 @@ textarea { min-height: 84px; resize: vertical; margin-bottom: 12px; }
 .mood:hover { opacity: .8; }
 .mood.selected { opacity: 1; transform: scale(1.18); background: var(--bg); }
 
+.num-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+.num-chip {
+  flex: 1; min-width: 40px; min-height: 44px;
+  border: 1.5px solid var(--border); background: var(--bg); border-radius: 12px;
+  font-size: .95rem; font-weight: 600; color: inherit; cursor: pointer; transition: .15s;
+}
+.num-chip.selected { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 14%, var(--bg)); color: var(--primary); }
+.num-chip.over { border-color: color-mix(in srgb, var(--danger) 45%, var(--border)); }
+.num-chip.over.selected { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, var(--bg)); color: var(--danger); }
+
 .trigger-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
 .trigger {
   border: 1.5px solid var(--border); background: var(--bg); border-radius: var(--radius-pill);

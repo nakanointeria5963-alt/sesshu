@@ -279,8 +279,18 @@ try { var _s = JSON.parse(localStorage.getItem('sesshu_v1')); if (_s && _s.theme
   <div class="sheet-panel">
     <div class="sheet-grip" aria-hidden="true"><i></i></div>
     <h2 id="recordDateTitle">今日の記録</h2>
-    <label class="field">
-      <span data-i18n="record.drinks">この日に飲んだ杯数（0でOK）</span>
+    <p class="field-label" data-i18n="record.drinks">この日に飲んだ杯数（0でOK）</p>
+    <div class="num-row" id="drinkQuick">
+      <button class="num-chip" data-drinks="0">0</button>
+      <button class="num-chip" data-drinks="1">1</button>
+      <button class="num-chip" data-drinks="2">2</button>
+      <button class="num-chip" data-drinks="3">3</button>
+      <button class="num-chip" data-drinks="4">4</button>
+      <button class="num-chip" data-drinks="5">5</button>
+      <button class="num-chip" data-drinks="more" data-i18n="record.drinksMore">6+</button>
+    </div>
+    <label class="field" id="drinkMoreField" hidden>
+      <span data-i18n="record.drinksExact">杯数を入力</span>
       <input type="number" id="logDrinks" min="0" step="1" value="0" />
     </label>
     <p class="field-label" data-i18n="record.mood">今日の気分は？</p>

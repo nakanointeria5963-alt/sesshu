@@ -812,6 +812,21 @@ function renderBadges() {
 let sheetDate = null;
 let selectedMood = null;
 
+/* 杯数クイック選択の表示を、いま入力されている値に合わせ直す。
+   0〜5はチップ、それ以外は「6+」チップ＋数値入力欄で受け取る。 */
+function syncDrinkQuick() {
+  const n = Math.max(0, Math.round(Number($('#logDrinks').value) || 0));
+  const viaChip = n <= 5;
+  $$('#drinkQuick .num-chip').forEach(b => {
+    /* 「6+」は最低でも6杯を意味するので、6が上限を超えるなら警告色にする */
+    const val = b.dataset.drinks === 'more' ? Math.max(6, n) : Number(b.dataset.drinks);
+    const over = val > state.dailyLimit;
+    b.classList.toggle('over', over);
+    b.classList.toggle('selected', viaChip ? Number(b.dataset.drinks) === n : b.dataset.drinks === 'more');
+  });
+  $('#drinkMoreField').hidden = viaChip;
+}
+
 function openRecordSheet(ds) {
   sheetDate = ds;
   const log = state.logs[ds] || {};
@@ -826,6 +841,7 @@ function openRecordSheet(ds) {
   $$('#triggerRow .trigger').forEach(b => b.classList.toggle('selected', trigs.has(b.dataset.trigger)));
   $('#note').value = log.note || '';
   $('#logDrinks').value = log.drinks || 0;
+  syncDrinkQuick();
   openSheet('#recordSheet');
 }
 
@@ -1501,6 +1517,18 @@ function init() {
     btn.classList.add('selected');
     selectedMood = Number(btn.dataset.mood);
   }));
+  $$('#drinkQuick .num-chip').forEach(btn => btn.addEventListener('click', () => {
+    if (btn.dataset.drinks === 'more') {
+      /* 6+を押した時点で6を仮置きし、数値入力欄をその場で編集できるようにする */
+      if (Number($('#logDrinks').value) <= 5) $('#logDrinks').value = 6;
+      syncDrinkQuick();
+      $('#logDrinks').focus();
+    } else {
+      $('#logDrinks').value = btn.dataset.drinks;
+      syncDrinkQuick();
+    }
+  }));
+  $('#logDrinks').addEventListener('input', syncDrinkQuick);
   $('#craving').addEventListener('input', () => { $('#cravingOut').textContent = `${$('#craving').value} / 10`; });
   $$('#triggerRow .trigger').forEach(b => b.addEventListener('click', () => b.classList.toggle('selected')));
   $('#saveLogBtn').addEventListener('click', saveLog);
