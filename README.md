@@ -5,9 +5,9 @@
 
 > **English:** A mobile-first moderate-drinking support PWA — goal tracking, savings, mood logs, SOS breathing, badges and a bit of daily tarot fun. **Fully bilingual (日本語 / English)** with automatic language detection, currency selection (¥ $ € £ ₩), no server, and all data stored on your device. Just open `index.html`, or install it to your home screen.
 
-> **注記**: このアプリは [kinnsyu（禁酒トラッカー）](https://github.com/nakanointeria5963-alt/kinnsyu) と同じ技術基盤から派生した、完全に独立したアプリです。データの共有・連携はありません。
+> **注記**: このアプリは [kinnsyu（禁酒トラッカー）](https://github.com/roguepink/kinnsyu) と同じ技術基盤から派生した、完全に独立したアプリです。データの共有・連携はありません。
 
-> **Note**: This app is derived from the same technical foundation as [kinnsyu (Sober Tracker)](https://github.com/nakanointeria5963-alt/kinnsyu) but is fully independent — no data is shared between the two apps.
+> **Note**: This app is derived from the same technical foundation as [kinnsyu (Sober Tracker)](https://github.com/roguepink/kinnsyu) but is fully independent — no data is shared between the two apps.
 
 ## 🌏 多言語対応
 
